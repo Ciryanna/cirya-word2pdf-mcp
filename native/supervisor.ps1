@@ -2,6 +2,21 @@ param([Parameter(Mandatory = $true)][string] $RequestPath)
 function Write-Trace([string] $Message) {
     if ($env:CIRYA_WORDPDF_TRACE -eq '1') { [Console]::Error.WriteLine('wordpdf supervisor: ' + $Message) }
 }
+[Console]::OutputEncoding = [System.Text.UTF8Encoding]::new($false)
+# Status needs only the session id and filesystem. Avoid compiling native helpers
+# or starting a parent-monitor thread for a read-only health request.
+$initialRequest = ConvertFrom-Json ([IO.File]::ReadAllText($RequestPath, [Text.Encoding]::UTF8))
+if ($initialRequest.action -eq 'status') {
+    $sessionId = [Diagnostics.Process]::GetCurrentProcess().SessionId
+    $root = Join-Path $env:LOCALAPPDATA "WordPdfMcp\session-$sessionId"
+    $pendingRecord = $null
+    if ([IO.File]::Exists((Join-Path $root 'pending.json'))) { $pendingRecord = Join-Path $root 'pending.json' }
+    $status = @{ platform = 'win32'; mutex = 'Local\Elwina.WordPdf.Worker.v1'; state_directory = $root;
+        pending_record = $pendingRecord; runtime = 'node-powershell-com';
+        note = 'Pending may mean a running task; Word and fidelity are not probed.' }
+    [Console]::WriteLine((ConvertTo-Json -Depth 10 -Compress -InputObject $status))
+    exit 0
+}
 Write-Trace 'loading Windows helpers'
 . (Join-Path $PSScriptRoot 'common.ps1')
 Write-Trace 'Windows helpers loaded'
@@ -121,14 +136,7 @@ try {
     Write-Trace ('request read: ' + $request.action)
     [Cirya.WordPdf.WindowsNative]::WatchParent([int]$request.parent_pid)
     Write-Trace 'parent monitor started'
-    if ($request.action -eq 'status') {
-        $root = Get-StateRoot
-        $pendingRecord = $null
-        if ([IO.File]::Exists((Join-Path $root 'pending.json'))) { $pendingRecord = Join-Path $root 'pending.json' }
-        $result = @{ platform = 'win32'; mutex = $script:MutexName; state_directory = $root;
-            pending_record = $pendingRecord; runtime = 'node-powershell-com';
-            note = 'Pending may mean a running task; Word and fidelity are not probed.' }
-    } elseif ($request.action -eq 'convert') { $result = Invoke-Conversion $request }
+    if ($request.action -eq 'convert') { $result = Invoke-Conversion $request }
     else { throw 'invalid_action: Unknown internal action.' }
 } catch {
     $message = $_.Exception.Message
