@@ -1,5 +1,8 @@
 name: tests
 on: [push, pull_request]
+concurrency:
+  group: tests-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
   npm:
     runs-on: windows-latest

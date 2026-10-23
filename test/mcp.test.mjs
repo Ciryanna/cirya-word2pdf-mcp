@@ -10,6 +10,7 @@ test('npm entry performs real stdio handshake and exposes exactly two tools', as
     command: process.execPath,
     args: [fileURLToPath(new URL('../bin/cli.mjs', import.meta.url))],
     stderr: 'pipe',
+    env: { CIRYA_WORDPDF_TRACE: process.env.CIRYA_WORDPDF_TRACE ?? '0' },
   });
   try {
     await client.connect(transport);

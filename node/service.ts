@@ -32,12 +32,27 @@ export async function invokeNative(
       validator_path: fileURLToPath(new URL('./verify-pdf.js', import.meta.url)),
     }), 'utf8');
     const script = fileURLToPath(new URL('../native/supervisor.ps1', import.meta.url));
-    const executable = join(process.env.SystemRoot ?? 'C:\\Windows', 'System32', 'WindowsPowerShell', 'v1.0', 'powershell.exe');
+    const systemRoot = process.env.SystemRoot ?? process.env.SYSTEMROOT ?? 'C:\\Windows';
+    const powershellRoot = join(systemRoot, 'System32', 'WindowsPowerShell', 'v1.0');
+    const executable = join(powershellRoot, 'powershell.exe');
+    // MCP clients may pass only a small environment allowlist. Give Windows
+    // PowerShell its own built-in module path rather than probing other hosts'
+    // module directories or relying on a parent shell's initialization.
+    const environment = { ...process.env };
+    for (const key of Object.keys(environment)) {
+      if (['SYSTEMROOT', 'WINDIR', 'COMSPEC', 'PSMODULEPATH'].includes(key.toUpperCase())) delete environment[key];
+    }
+    Object.assign(environment, {
+      SystemRoot: systemRoot,
+      WINDIR: systemRoot,
+      ComSpec: join(systemRoot, 'System32', 'cmd.exe'),
+      PSModulePath: join(powershellRoot, 'Modules'),
+    });
     // No shell and no document paths embedded in PowerShell source or command text.
     const child = spawn(executable, [
       '-NoLogo', '-NoProfile', '-NonInteractive', '-STA', '-ExecutionPolicy', 'Bypass',
       '-File', script, '-RequestPath', requestPath,
-    ], { windowsHide: true, stdio: ['ignore', 'pipe', 'pipe'] });
+    ], { windowsHide: true, env: environment, stdio: ['ignore', 'pipe', 'pipe'] });
     const response = await new Promise<string>((resolve, reject) => {
       let output = '';
       let errors = '';
