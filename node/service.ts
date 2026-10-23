@@ -53,7 +53,7 @@ export async function invokeNative(
       child.once('error', (error) => { clearTimeout(timer); reject(error); });
       child.once('close', (code) => {
         clearTimeout(timer);
-        if (timedOut) reject(new Error('recovery_required: Native supervisor deadline exceeded. Inspect word_pdf_status before retrying.'));
+        if (timedOut) reject(new Error(`recovery_required: Native supervisor deadline exceeded. Inspect word_pdf_status before retrying. ${errors}${output ? ' Response received before timeout: ' + output : ''}`));
         else if (!output.trim()) reject(new Error(`native_failed: PowerShell exited ${code}. ${errors}`));
         else resolve(output);
       });

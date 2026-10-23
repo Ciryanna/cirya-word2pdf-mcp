@@ -1,5 +1,10 @@
 param([Parameter(Mandatory = $true)][string] $RequestPath)
+function Write-Trace([string] $Message) {
+    if ($env:CIRYA_WORDPDF_TRACE -eq '1') { [Console]::Error.WriteLine('wordpdf supervisor: ' + $Message) }
+}
+Write-Trace 'loading Windows helpers'
 . (Join-Path $PSScriptRoot 'common.ps1')
+Write-Trace 'Windows helpers loaded'
 
 function Invoke-Conversion($Request) {
     $timeout = 180
@@ -113,7 +118,9 @@ function Invoke-Conversion($Request) {
 
 try {
     $request = Read-JsonFile $RequestPath
+    Write-Trace ('request read: ' + $request.action)
     [Cirya.WordPdf.WindowsNative]::WatchParent([int]$request.parent_pid)
+    Write-Trace 'parent monitor started'
     if ($request.action -eq 'status') {
         $root = Get-StateRoot
         $pendingRecord = $null
@@ -129,4 +136,6 @@ try {
     if ($message -match '([a-z_]+):\s*(.*)') { $code = $Matches[1]; $message = $Matches[2] }
     $result = @{ status = 'error'; code = $code; message = $message }
 }
+Write-Trace 'writing response'
 [Console]::WriteLine((ConvertTo-Json -Depth 30 -Compress -InputObject $result))
+Write-Trace 'response written'
