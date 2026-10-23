@@ -1,0 +1,38 @@
+{
+  "name": "cirya-word2pdf-mcp",
+  "version": "0.2.0",
+  "description": "Local Windows MCP using native Microsoft Word COM PDF export",
+  "author": "Ciryanna",
+  "homepage": "https://github.com/Ciryanna/cirya-word2pdf-mcp#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Ciryanna/cirya-word2pdf-mcp.git"
+  },
+  "bugs": { "url": "https://github.com/Ciryanna/cirya-word2pdf-mcp/issues" },
+  "keywords": ["mcp", "word", "pdf", "windows", "com", "ciryanna"],
+  "publishConfig": { "registry": "https://registry.npmjs.org/", "access": "public" },
+  "type": "module",
+  "license": "UNLICENSED",
+  "engines": { "node": ">=22" },
+  "os": ["win32"],
+  "bin": { "cirya-word2pdf-mcp": "bin/cli.mjs" },
+  "files": ["bin/", "lib/", "native/", "docs/", "AGENTS.md", "CHANGELOG.md"],
+  "scripts": {
+    "build": "tsc",
+    "check": "tsc --noEmit",
+    "start": "node bin/cli.mjs",
+    "test": "npm run build && node --test test/*.test.mjs",
+    "test:word": "npm run build && node --test test/native-word.test.mjs",
+    "prepack": "npm run build"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.32.1",
+    "pdf-lib": "^1.17.1",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "fflate": "^0.8.2",
+    "typescript": "^7.0.2"
+  }
+}
